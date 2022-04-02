@@ -157,6 +157,25 @@ namespace Lab2
                     dataGridView2.DataSource = binding;
 
                     // and we populate the second GridView
+
+
+                    String columnName = "";
+                    // we need to make the textboxes and Labels for the child table in order to make the CRUD operations
+                    for (int index = 0; index < dataGridView2.ColumnCount; index++)
+                    {
+                        columnName = dataGridView2.Columns[index].HeaderText;
+                        Label newLabel = new Label();
+                        newLabel.Text = columnName;
+                        newLabel.Location = new Point(10, 300 + index * 30);
+                        newLabel.AutoSize = true;
+                        newLabel.Font = new Font("Arial", 10, FontStyle.Bold);
+                        this.Controls.Add(newLabel);
+                        TextBox text = new TextBox();
+                        text.Location = new Point(200, 300 + index * 30);
+                        this.Controls.Add(text);
+
+                    }
+
                     connection.Close();
                 }
                 catch(SqlException exception)

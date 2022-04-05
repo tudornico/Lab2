@@ -244,7 +244,7 @@ namespace Lab2
                 }
             }
         }
-
+        //Insert button works
         private void button2_Click(object sender, EventArgs e)
         {
 
@@ -257,7 +257,7 @@ namespace Lab2
                 {
                     connection.Open();
 
-                    String insertQuery = "Inser into @Table Values (";
+                    String insertQuery = "Insert into "+ ConfigurationManager.AppSettings["ChildTable"]+" Values (";
                     for (int index = 0; index < dataGridView2.ColumnCount; index++)
                     {
                         insertQuery += "@" + dataGridView2.Columns[index].HeaderText;
@@ -303,22 +303,22 @@ namespace Lab2
 
                     // get Primary Key From parent Table
                     String PKQuery = "SELECT " +
-                    " KU.table_name as TABLENAME " +
-                   " ,column_name as PRIMARYKEYCOLUMN " +
-                   " FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC " +
-                   " INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU " +
-                   " ON TC.CONSTRAINT_TYPE = 'PRIMARY KEY' " +
-                   " AND TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME " +
-                   " AND KU.table_name = ' @ParentTable '";
+                     " KU.table_name as TABLENAME " +
+                    " ,column_name as PRIMARYKEYCOLUMN " +
+                    " FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC " +
+                    " INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU " +
+                    " ON TC.CONSTRAINT_TYPE = 'PRIMARY KEY' " +
+                    " AND TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME " +
+                    " AND KU.table_name = @ChildTable";
 
                     SqlCommand command = new SqlCommand(PKQuery,connection);
 
-                    command.Parameters.AddWithValue("@ParentTable", ConfigurationManager.AppSettings["ParentTable"]);
+                    command.Parameters.AddWithValue("@ChildTable", ConfigurationManager.AppSettings["ChildTable"]);
                     SqlDataReader reader = command.ExecuteReader();
-                    String ParentPk = "";
+                    String ChildPk = "";
                     while (reader.Read())
                     {
-                        ParentPk = reader.GetString(1);
+                        ChildPk = reader.GetString(1);
                     }
                     reader.Close();
 
@@ -337,48 +337,58 @@ namespace Lab2
                     reader.Close();
 
                     //Start The Update Query
-                    //String UpdateQuery = "Update @Table Set ";
-                    String UpdateQuery = "Update" + ConfigurationManager.AppSettings["ChildTable"] + "Set";
+                    String UpdateQuery = "Update " + ConfigurationManager.AppSettings["ChildTable"]+" Set ";
 
+                    MessageBox.Show(ChildPk);
                     // parametrization is backwards we want to have @COlumnName = textbox[index].Text fuck me sideways
                     for (int index = 0; index < dataGridView2.ColumnCount; index++)
                     {
-                        
-                        UpdateQuery += dataGridView2.Columns[index].HeaderText + " = @" + dataGridView2.Columns[index].HeaderText;
-                        if (index != dataGridView2.ColumnCount - 1)
+                        if (dataGridView2.Columns[index].HeaderText != ChildPk)
                         {
-                            UpdateQuery += ",";
+                            UpdateQuery += dataGridView2.Columns[index].HeaderText + " = @" + dataGridView2.Columns[index].HeaderText;
+                            if (index != dataGridView2.ColumnCount - 1)
+                            {
+                                UpdateQuery += ",";
+                            }
                         }
+                       
                     }
                     // we change each column
                     
 
-                    String ForeignKeyValue="";
+                    String PrimaryKeyValue="";
                     //get the value that we want to change
                     for(int index = 0; index < this.textBoxes1.Count; index++)
                     {
                         
-                        if(textBoxes1[index].Tag.ToString() == foreignKey)
+                        if(textBoxes1[index].Tag.ToString() == ChildPk)
                         {
-                            ForeignKeyValue = textBoxes1[index].Text;
+                            PrimaryKeyValue = textBoxes1[index].Text;
                             break;
                         }
                     }
-                    //UpdateQuery += " Where @ForeignKey = @GivenKey";
-                    UpdateQuery += " Where @ForeignKey = " + ForeignKeyValue;
+                    UpdateQuery += " Where @PrimaryKey = @GivenKey";
+                   
                     SqlCommand cmd = new SqlCommand(UpdateQuery, connection);
-                  //  cmd.Parameters.AddWithValue("@Table", ConfigurationManager.AppSettings["ChildTable"]);
-                    cmd.Parameters.AddWithValue("@ForeignKey", foreignKey);
-                    //cmd.Parameters.AddWithValue("@GivenKey", ForeignKeyValue); // this should be the value of the key that we are updating
-                    MessageBox.Show(ForeignKeyValue);
+                    
+                    cmd.Parameters.AddWithValue("@PrimaryKey",ChildPk); // childPrimarykey
+                    cmd.Parameters.AddWithValue("@GivenKey", PrimaryKeyValue); // this should be the value of the key that we are updating
+                    
 
                     //all from below should be values from the text boxes
                     for (int index = 0; index < dataGridView2.ColumnCount; index++)
-                    {   
-                        cmd.Parameters.AddWithValue("@" + dataGridView2.Columns[index].HeaderText, this.textBoxes1[index].Text);
+                    {
+                        if (dataGridView2.Columns[index].HeaderText != ChildPk)
+                        {
+                            cmd.Parameters.AddWithValue("@" + dataGridView2.Columns[index].HeaderText, this.textBoxes1[index].Text);
+                        }
+                        
                     }
-                    reader = cmd.ExecuteReader();
-                    reader.Close();
+                    MessageBox.Show(ChildPk + " " + PrimaryKeyValue);
+                    SqlDataReader sqlDataReader = cmd.ExecuteReader();
+                    
+                    
+                    sqlDataReader.Close();
                     MessageBox.Show("Updated Succesfully!");
                     connection.Close();
                 }
@@ -405,7 +415,7 @@ namespace Lab2
                         " INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU " +
                         " ON TC.CONSTRAINT_TYPE = 'PRIMARY KEY' " +
                         " AND TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME " +
-                        " AND KU.table_name = ' @ChildTable '";
+                        " AND KU.table_name =  @ChildTable";
                     String PKChild = "";
                     SqlCommand command = new SqlCommand(PrimaryKeyChildQuery,connection);
                     command.Parameters.AddWithValue("@ChildTable", ConfigurationManager.AppSettings["ChildTable"]);
@@ -420,27 +430,45 @@ namespace Lab2
                     String ForeignKeyQuery = "EXEC sp_fkeys @pktable_name = @ParentTable" +
                         ",@fktable_name = @ChildTableName";
                     SqlCommand command2 = new SqlCommand(ForeignKeyQuery, connection);
+                    command2.Parameters.AddWithValue("@ParentTable", ConfigurationManager.AppSettings["ParentTable"]);
+                    command2.Parameters.AddWithValue("@ChildTableName", ConfigurationManager.AppSettings["ChildTable"]);
                     reader = command2.ExecuteReader();
+                    
                     String foreignKey = "";
                     while (reader.Read())
                     {
                         foreignKey = reader.GetString(7);
                     }
-
-                    String DeleteQuery = "Delete from @Table where @PrimaryKey = @GivenKey";
+                    reader.Close();
+                    String DeleteQuery = "Delete from "+ ConfigurationManager.AppSettings["ChildTable"]+" where @PrimaryKey = @GivenKey";
                     SqlCommand cmd = new SqlCommand(DeleteQuery, connection);
-                    cmd.Parameters.AddWithValue("@Table", ConfigurationManager.AppSettings["ChildTable"]);
                     cmd.Parameters.AddWithValue("@PrimaryKey", PKChild);
                     //SelectedRows[0].Cells[foreignkey]
-                    cmd.Parameters.AddWithValue("@GivenKey", dataGridView2.SelectedRows[0].Cells[foreignKey].Value.ToString());
 
+                    String PrimaryKeyValue = "";
+                    for (int index = 0; index < this.textBoxes1.Count; index++)
+                    {
+                        if (textBoxes1[index].Tag.ToString() == PKChild)
+                        {
+                            PrimaryKeyValue = textBoxes1[index].Text;
+                            break;
+                        }
+                    }
+                    cmd.Parameters.AddWithValue("@GivenKey", PrimaryKeyValue);
+
+                    MessageBox.Show(cmd.CommandText);
+                    MessageBox.Show(PKChild + " " + PrimaryKeyValue);
                     reader = cmd.ExecuteReader();
+                    //bind method to update the datagridview
+                    dataGridView2.DataSource = reader;
+
                     reader.Close();
+                    MessageBox.Show("Deleted Succesfully!");
                     connection.Close();
                 }
                 catch
                 {
-                    
+                    MessageBox.Show("OOps Crapa!");
                 }
             }
         }

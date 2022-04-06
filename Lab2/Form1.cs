@@ -277,6 +277,7 @@ namespace Lab2
                         
                         command.Parameters.AddWithValue("@" + dataGridView2.Columns[index].HeaderText, this.textBoxes1[index].Text);
                     }
+                    MessageBox.Show(insertQuery);
                     SqlDataReader reader = command.ExecuteReader();
                     reader.Close();
                     //we need to autoRefresh the Tables
@@ -367,14 +368,14 @@ namespace Lab2
                             break;
                         }
                     }
-                    UpdateQuery += " Where @PrimaryKey = @GivenKey";
+                    UpdateQuery += " Where "+ChildPk+" = @GivenKey";
                    
                     SqlCommand cmd = new SqlCommand(UpdateQuery, connection);
                     
-                    cmd.Parameters.AddWithValue("@PrimaryKey",ChildPk); // childPrimarykey
+                    //cmd.Parameters.AddWithValue("@PrimaryKey",ChildPk); // childPrimarykey
                     cmd.Parameters.AddWithValue("@GivenKey", PrimaryKeyValue); // this should be the value of the key that we are updating
-                    
 
+                    MessageBox.Show(cmd.CommandText);
                     //all from below should be values from the text boxes
                     for (int index = 0; index < dataGridView2.ColumnCount; index++)
                     {
@@ -433,16 +434,21 @@ namespace Lab2
                     command2.Parameters.AddWithValue("@ParentTable", ConfigurationManager.AppSettings["ParentTable"]);
                     command2.Parameters.AddWithValue("@ChildTableName", ConfigurationManager.AppSettings["ChildTable"]);
                     reader = command2.ExecuteReader();
-                    
+
+                    //String foreignKey = "";
+                    //while (reader.Read())
+                    //{
+                    //  foreignKey = reader.GetString(7);
+                    // }
                     String foreignKey = "";
                     while (reader.Read())
                     {
                         foreignKey = reader.GetString(7);
                     }
                     reader.Close();
-                    String DeleteQuery = "Delete from "+ ConfigurationManager.AppSettings["ChildTable"]+" where @PrimaryKey = @GivenKey";
+                    String DeleteQuery = "Delete from "+ ConfigurationManager.AppSettings["ChildTable"]+" where "+ PKChild+" = @GivenKey";
                     SqlCommand cmd = new SqlCommand(DeleteQuery, connection);
-                    cmd.Parameters.AddWithValue("@PrimaryKey", PKChild);
+                    
                     //SelectedRows[0].Cells[foreignkey]
 
                     String PrimaryKeyValue = "";
@@ -455,12 +461,12 @@ namespace Lab2
                         }
                     }
                     cmd.Parameters.AddWithValue("@GivenKey", PrimaryKeyValue);
-
                     MessageBox.Show(cmd.CommandText);
                     MessageBox.Show(PKChild + " " + PrimaryKeyValue);
                     reader = cmd.ExecuteReader();
                     //bind method to update the datagridview
-                    dataGridView2.DataSource = reader;
+
+                   
 
                     reader.Close();
                     MessageBox.Show("Deleted Succesfully!");
